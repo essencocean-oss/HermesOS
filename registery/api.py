@@ -4,6 +4,7 @@ from typing import List, Optional
 import os, json
 
 app = FastAPI(title='HermesOS Registry')
+app.mount("/notifications", __import__("registery.notifications").notifications.notifs)
 app.mount('/processes', __import__('registery.processes').processes.procs)
 
 REGISTRY_PATH = 'skills'

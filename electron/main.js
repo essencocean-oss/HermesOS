@@ -1,8 +1,11 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, Tray, Menu, globalShortcut, Notification } = require('electron');
 const path = require('path');
 
+let win = null;
+let tray = null;
+
 function createWindow () {
-  const w = new BrowserWindow({
+  win = new BrowserWindow({
     width: 1280,
     height: 800,
     title: 'HermesOS',
@@ -11,6 +14,36 @@ function createWindow () {
       contextIsolation: true
     }
   });
-  w.loadFile(path.join(__dirname, '..', 'ui', 'index.html'));
+  win.loadFile(path.join(__dirname, '..', 'ui', 'index.html'));
+  win.on('close', function (e) {
+    if (!app.isQuitting) {
+      e.preventDefault();
+      win.hide();
+    }
+  });
 }
-app.whenReady().then(createWindow);
+
+function createTray () {
+  tray = new Tray(path.join(__dirname, '..', 'ui', 'icon.png'));
+  const contextMenu = Menu.buildFromTemplate([
+    { label: 'Show HermesOS', click: function () { win.show(); } },
+    { label: 'Quit', click: function () { app.isQuitting = true; app.quit(); } }
+  ]);
+  tray.setToolTip('HermesOS');
+  tray.setContextMenu(contextMenu);
+  tray.on('double-click', function () { win.show(); });
+}
+
+app.whenReady().then(function () {
+  createWindow();
+  createTray();
+  globalShortcut.register('CommandOrControl+Shift+H', function () {
+    if (win.isVisible()) win.hide();
+    else win.show();
+  });
+  app.setLoginItemSettings({ openAtLogin: true });
+});
+
+app.on('window-all-closed', function () {
+  if (process.platform !== 'darwin') app.quit();
+});
