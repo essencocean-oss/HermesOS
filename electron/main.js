@@ -24,12 +24,8 @@ function createWindow () {
 }
 
 function createTray () {
-  try {
-    tray = new Tray(path.join(__dirname, '..', 'ui', 'icon.png'));
-  } catch (e) {
-    console.log('Tray icon not found, skipping tray.');
-    return;
-  }  const contextMenu = Menu.buildFromTemplate([
+  tray = new Tray(path.join(__dirname, '..', 'ui', 'icon.png'));
+  const contextMenu = Menu.buildFromTemplate([
     { label: 'Show HermesOS', click: function () { win.show(); } },
     { label: 'Quit', click: function () { app.isQuitting = true; app.quit(); } }
   ]);
