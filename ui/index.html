@@ -220,19 +220,28 @@ function startDemoProcess(){
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({skill:"daily-brief"})
-  }).then(function(){ loadProcesses(); }).catch(function(){ alert("Registry not reachable"); });
+  }).then(function(r){return r.json();}).then(function(d){loadProcesses();}).catch(function(){alert("Registry not reachable");});
+}
+function stopProcess(pid){
+  fetch("http://localhost:8000/processes/users/demo/processes/"+encodeURIComponent(pid)+"/stop",{method:"POST"}).then(function(){loadProcesses();}).catch(function(){alert("Stop failed");});
+}
+function restartProcess(pid){
+  fetch("http://localhost:8000/processes/users/demo/processes/"+encodeURIComponent(pid)+"/restart",{method:"POST"}).then(function(){loadProcesses();}).catch(function(){alert("Restart failed");});
 }
 function loadProcesses(){
-  fetch("http://localhost:8000/processes/users/demo/processes")
-    .then(function(r){ return r.json(); })
-    .then(function(d){
-      var el=document.getElementById("processes");
-      if(!el) return;
-      el.innerHTML=d.map(function(x){
-        return '<div class="chat-bubble"><b>'+x.skill+'</b> • '+x.status+'<br><small>'+(x.started_at||"")+'</small></div>';
-      }).join("") || "No active processes.";
-    })
-    .catch(function(){ alert("Registry not reachable"); });
+  fetch("http://localhost:8000/processes/users/demo/processes").then(function(r){return r.json();}).then(function(d){
+    var el=document.getElementById("processes");
+    if(!el)return;
+    el.innerHTML=d.map(function(x){
+      var icon=x.status==='running'?'▶️':'⏹️';
+      var actions='';
+      if(x.status==='running'){
+        actions=' <button class="btn" style="margin-top:4px;padding:2px 8px;font-size:10px;" onclick="stopProcess(\''+x.pid+'\')">Stop</button> <button class="btn primary" style="margin-top:4px;padding:2px 8px;font-size:10px;" onclick="restartProcess(\''+x.pid+'\')">Restart</button>';
+      }
+      return '<div class="chat-bubble"><b>'+icon+' '+x.skill+'</b> • '+x.status+'<br><small>'+(x.started_at||'')+'</small>'+actions+'</div>';
+    }).join("")||'<div class="chat-bubble">No processes.</div>';
+  }).catch(function(){alert("Registry not reachable");});
+
 }
 
 function boot(){
