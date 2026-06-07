@@ -5,8 +5,8 @@ import os, json
 
 app = FastAPI(title='HermesOS Registry')
 app.mount("/notifications", __import__("registery.notifications").notifications.notifs)
-app.mount('/processes', __import__('registery.processes').processes.procs)
 app.mount("/memory", __import__("registery.memory").memory.mem)
+app.mount('/processes', __import__('registery.processes').processes.procs)
 
 REGISTRY_PATH = 'skills'
 USERS_PATH = 'users'
@@ -50,3 +50,74 @@ def track_download(name: str):
 @app.get("/skills/{name}/downloads")
 def get_downloads(name: str):
     return {"name": name, "downloads": downloads.get(name, 0)}
+
+# --- Skills CRUD ---
+import glob as _glob
+
+def _load_manifests():
+    out = {}
+    for path in _glob.glob(f"{REGISTRY_PATH}/*/manifest.json"):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            out[data.get("name", path)] = data
+        except Exception:
+            pass
+    return out
+
+@app.get("/skills")
+def list_skills():
+    manifests = _load_manifests()
+    items = []
+    for name, m in manifests.items():
+        items.append({
+            "name": m.get("name", name),
+            "version": m.get("version", "0.1.0"),
+            "description": m.get("description", ""),
+            "author": m.get("author", ""),
+            "tags": m.get("tags", []),
+            "price_cents": m.get("price_cents", 0),
+            "downloads": downloads.get(name, 0),
+            "ratings": ratings.get(name, []),
+        })
+    return {"items": items}
+
+@app.get("/skills/{name}")
+def get_skill(name: str):
+    manifests = _load_manifests()
+    if name not in manifests:
+        raise HTTPException(404, "Skill not found")
+    m = manifests[name]
+    return {
+        "name": m.get("name", name),
+        "version": m.get("version", "0.1.0"),
+        "description": m.get("description", ""),
+        "author": m.get("author", ""),
+        "tags": m.get("tags", []),
+        "price_cents": m.get("price_cents", 0),
+        "downloads": downloads.get(name, 0),
+        "ratings": ratings.get(name, []),
+    }
+
+@app.post("/skills/{name}/install")
+def install_skill(name: str):
+    manifests = _load_manifests()
+    if name not in manifests:
+        raise HTTPException(404, "Skill not found")
+    downloads[name] = downloads.get(name, 0) + 1
+    return {"installed": name, "downloads": downloads[name]}
+
+@app.post("/skills/{name}/uninstall")
+def uninstall_skill(name: str):
+    manifests = _load_manifests()
+    if name not in manifests:
+        raise HTTPException(404, "Skill not found")
+    return {"uninstalled": name}
+
+@app.post("/skills")
+def publish_skill(manifest: SkillManifest):
+    return {
+        "name": manifest.name,
+        "version": manifest.version,
+        "status": "published",
+    }

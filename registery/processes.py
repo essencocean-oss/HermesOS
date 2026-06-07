@@ -2,7 +2,7 @@ import os, json, uuid, subprocess
 from datetime import datetime
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 
 procs = FastAPI(title='HermesOS Process Manager')
 DB = 'processes.json'
