@@ -29,3 +29,6 @@ electron/dist/
 electron/node_modules/
 create_alpha.py
 media/
+memory_store.json
+processes.json
+notifications.json
