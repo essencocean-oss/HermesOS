@@ -1,0 +1,21 @@
+{
+  "name": "hermesos-desktop",
+  "version": "0.1.0-alpha",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "build": {
+    "appId": "com.essencocean.hermesos",
+    "productName": "HermesOS",
+    "win": {
+      "target": "nsis",
+      "output": "dist/HermesOS-Setup.exe"
+    }
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.0.0"
+  }
+}

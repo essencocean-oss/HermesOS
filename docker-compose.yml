@@ -1,0 +1,13 @@
+version: "3.9"
+services:
+  registry:
+    image: python:3.11-slim
+    working_dir: /app
+    volumes:
+      - ./registery:/app/registery
+      - ./skills:/app/skills
+      - ./users:/app/users
+    command: ["python","-m","uvicorn","registery.api:app","--host","0.0.0.0","--port","8000"]
+    ports:
+      - "8000:8000"
+    restart: unless-stopped

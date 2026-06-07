@@ -1,1 +1,200 @@
-<!doctype html><html><head><title>HermesOS</title></head><body><h1>HermesOS Desktop</h1></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>HermesOS</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+    background: #0a0e1a;
+    color: #c9d1d9;
+    height: 100vh;
+    overflow: hidden;
+  }
+  .topbar {
+    height: 44px;
+    background: rgba(16,20,30,0.92);
+    border-bottom: 1px solid #21262d;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    font-size: 13px;
+    gap: 16px;
+  }
+  .brand { font-weight: 600; color: #f0f6fc; letter-spacing: 0.5px; }
+  .status { color: #7d8590; font-size: 11px; }
+  .top-actions { margin-left: auto; display: flex; gap: 8px; }
+  .btn {
+    background: #238636;
+    color: white;
+    border: 1px solid #2ea043;
+    padding: 5px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .btn:hover { background: #2ea043; }
+  .btn.primary { background: #1f6feb; border-color: #388bfd; }
+  .btn.primary:hover { background: #388bfd; }
+  .main {
+    display: grid;
+    grid-template-columns: 240px 1fr 300px;
+    height: calc(100vh - 44px);
+  }
+  .sidebar {
+    background: #0d1117;
+    border-right: 1px solid #21262d;
+    padding: 10px;
+    font-size: 12px;
+  }
+  .section {
+    color: #7d8590;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 14px 0 6px;
+  }
+  .item {
+    padding: 5px 10px;
+    border-radius: 6px;
+    margin-bottom: 2px;
+    cursor: pointer;
+    color: #c9d1d9;
+  }
+  .item:hover { background: #161b22; }
+  .center { padding: 20px; overflow-y: auto; }
+  .right {
+    background: #0d1117;
+    border-left: 1px solid #21262d;
+    padding: 10px;
+    font-size: 12px;
+  }
+  .terminal {
+    background: #010409;
+    border: 1px solid #21262d;
+    border-radius: 8px;
+    padding: 10px;
+    font-family: Consolas, monospace;
+    font-size: 11px;
+    color: #7ee787;
+    min-height: 100px;
+    margin-top: 10px;
+  }
+  .skill-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+  }
+  .chat-bubble {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-bottom: 6px;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  .chat-bubble.user { background: #1f6feb22; border-color: #1f6feb; }
+  input[type=text] {
+    background: #0d1117;
+    color: #c9d1d9;
+    border: 1px solid #30363d;
+    padding: 5px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    width: 100%;
+  }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">⚡ HermesOS</div>
+    <div class="status">Alpha • Localhost:8000</div>
+    <div class="top-actions">
+      <button class="btn" onclick="installSkill()">Install Skill</button>
+      <button class="btn primary" onclick="runTerminal()">Terminal</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="sidebar">
+      <div class="section">Navigation</div>
+      <div class="item">🏠 Home</div>
+      <div class="item">🤖 Agent</div>
+      <div class="item">🛍 Marketplace</div>
+      <div class="item">📊 Terminal</div>
+      <div class="item">⚙ Settings</div>
+      <div class="section">Installed</div>
+      <div class="item">onboarding</div>
+      <div class="item">daily-brief</div>
+      <div class="item">crypto-trader</div>
+    </div>
+
+    <div class="center">
+      <h2 style="font-size:17px;font-weight:600;margin-bottom:10px;">Welcome</h2>
+      <p style="color:#7d8590;font-size:13px;margin-bottom:16px;">
+        Agent runtime with a public skill marketplace. Install skills and automate workflows.
+      </p>
+
+      <div class="skill-card">
+        <div style="font-weight:600;margin-bottom:4px;">🚀 Quick Start</div>
+        <div style="color:#7d8590;font-size:12px;margin-bottom:8px;">Run bootstrap.ps1 to prepare your environment.</div>
+        <button class="btn" onclick="boot()">Run bootstrap.ps1</button>
+      </div>
+
+      <div class="skill-card">
+        <div style="font-weight:600;margin-bottom:4px;">📦 Marketplace</div>
+        <div style="color:#7d8590;font-size:12px;">Browse skills at <a href="http://localhost:8000/skills" style="color:#58a6ff;">localhost:8000/skills</a></div>
+      </div>
+
+      <div style="margin-top:16px;">
+        <div class="terminal" id="term">HermesOS v0.1.0-alpha
+Registry: http://localhost:8000
+Agent: waiting
+Skills: 9 discovered
+Users: 0 active
+</div>
+      </div>
+    </div>
+
+    <div class="right">
+      <div class="section">Agent Chat</div>
+      <div class="chat-bubble user">What can you do?</div>
+      <div class="chat-bubble">Install skills, run commands, send Telegram posts, analyze markets, and automate tasks.</div>
+      <div class="chat-bubble user">Install daily-brief</div>
+      <div class="chat-bubble" id="chat-status">Installed daily-brief. Use /brief to run.</div>
+
+      <div class="section" style="margin-top:18px;">System</div>
+      <div style="color:#7d8590;font-size:11px;line-height:1.7;">
+        Runtime: Hermes Agent<br>
+        Platform: Windows<br>
+        Containers: 0<br>
+        Billing: Stripe-ready<br>
+        Status: Alpha
+      </div>
+    </div>
+  </div>
+
+<script>
+function boot(){
+  const t=document.getElementById('term');
+  t.innerHTML += '\\nRunning bootstrap.ps1...';
+  fetch('http://localhost:8000/health')
+    .then(r=>r.json()).then(d=>{ t.innerHTML += '\\nRegistry OK: '+JSON.stringify(d); }).catch(()=>{ t.innerHTML += '\\nRegistry not reachable.'; });
+}
+function runTerminal(){ alert('Terminal mode available in v0.2.0.'); }
+function installSkill(){
+  const name=prompt('Skill name?');
+  if(!name) return;
+  fetch('http://localhost:8000/skills/'+encodeURIComponent(name))
+    .then(r=>r.ok?r.json():Promise.reject('not found'))
+    .then(d=>{ document.getElementById('chat-status').innerHTML='Installed '+name; })
+    .catch(()=>{ document.getElementById('chat-status').innerHTML='Skill not found in registry.'; });
+}
+</script>
+</body>
+</html>
