@@ -1,9 +1,11 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Optional
 import os, json
 
 app = FastAPI(title='HermesOS Registry')
+app.mount('/ui', StaticFiles(directory='ui', html=True))
 app.mount("/notifications", __import__("registery.notifications").notifications.notifs)
 app.mount("/memory", __import__("registery.memory").memory.mem)
 app.mount('/processes', __import__('registery.processes').processes.procs)
@@ -54,15 +56,67 @@ def get_downloads(name: str):
 # --- Skills CRUD ---
 import glob as _glob
 
-def _load_manifests():
+def _load_manifests() -> dict:
     out = {}
+    # 1) manifest.json files
     for path in _glob.glob(f"{REGISTRY_PATH}/*/manifest.json"):
         try:
             with open(path, "r", encoding="utf-8") as f:
                 data = json.load(f)
-            out[data.get("name", path)] = data
+            out[data.get("name", _stem(path))] = data
         except Exception:
             pass
+    # 2) SKILL.md files with YAML frontmatter (only if no manifest.json)
+    manifest_stems = {_stem(p) for p in _glob.glob(f"{REGISTRY_PATH}/*/manifest.json")}
+    for path in _glob.glob(f"{REGISTRY_PATH}/*/SKILL.md"):
+        if _stem(path) in manifest_stems:
+            continue
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                content = f.read()
+            data = _parse_yaml_frontmatter(content)
+            name = data.get("name") or _stem(path)
+            data.setdefault("name", name)
+            data.setdefault("version", "0.1.0")
+            data.setdefault("description", "")
+            data.setdefault("author", "")
+            data.setdefault("tags", [])
+            data.setdefault("price_cents", 0)
+            data.setdefault("license_key_required", False)
+            out[name] = data
+        except Exception:
+            pass
+    return out
+
+def _stem(path: str) -> str:
+    # directory name is the skill identifier (e.g. .../skills/<name>/SKILL.md)
+    return os.path.basename(os.path.dirname(path))
+
+def _parse_yaml_frontmatter(text: str) -> dict:
+    out = {}
+    if not text.startswith("---"):
+        return out
+    _, body, _ = text.split("---", 2)
+    for line in body.splitlines():
+        if ":" not in line:
+            continue
+        k, v = line.split(":", 1)
+        k, v = k.strip(), v.strip()
+        if k == "tags":
+            v = [t.strip() for t in v.split(",") if t.strip()] if v else []
+            out[k] = v
+            continue
+        if v.lower() == "true":
+            out[k] = True
+        elif v.lower() == "false":
+            out[k] = False
+        elif k not in {"name", "description", "author"}:
+            try:
+                out[k] = int(v)
+            except Exception:
+                out[k] = v
+        else:
+            out[k] = v
     return out
 
 @app.get("/skills")
