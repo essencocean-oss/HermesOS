@@ -1,15 +1,13 @@
-New-Item -ItemType Directory -Force -Path registry | Out-Null
-
-@'
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
-import os, json
+import os, json, shutil
 
 app = FastAPI(title="HermesOS Registry")
 
 REGISTRY_PATH = "skills"
 USERS_PATH = "users"
+WORKSPACES_PATH = "workspaces"
 
 class Skill(BaseModel):
     name: str
@@ -17,6 +15,7 @@ class Skill(BaseModel):
     description: str
     author: str
     price_cents: int = 0
+    tags: List[str] = []
 
 class User(BaseModel):
     user_id: str
@@ -60,4 +59,18 @@ def install_skill(user_id: str, skill_name: str):
         with open(state_path, "w") as fp:
             json.dump(state, fp, indent=2)
     return {"user_id": user_id, "skill": skill_name, "installed": True}
-'@ | Out-File -FilePath registry/api.py -Encoding UTF8
+
+@app.post("/users/{user_id}/workspace")
+def create_workspace(user_id: str, name: str = "default"):
+    ws_path = os.path.join(WORKSPACES_PATH, user_id, name)
+    os.makedirs(ws_path, exist_ok=True)
+    for sub in ["skills", "data", "logs"]:
+        os.makedirs(os.path.join(ws_path, sub), exist_ok=True)
+    return {"user_id": user_id, "workspace": name, "path": ws_path}
+
+@app.get("/users/{user_id}/workspaces")
+def list_workspaces(user_id: str):
+    base = os.path.join(WORKSPACES_PATH, user_id)
+    if not os.path.exists(base):
+        return {"user_id": user_id, "workspaces": []}
+    return {"user_id": user_id, "workspaces": os.listdir(base)}
