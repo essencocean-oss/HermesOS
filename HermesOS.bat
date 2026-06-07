@@ -1,3 +1,3 @@
 @echo off
-start HermesOS UI
+start ui\index.html
 pause
