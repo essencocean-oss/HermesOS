@@ -128,6 +128,11 @@
       <div class="item">🛍 Marketplace</div>
       <div class="item">📊 Terminal</div>
       <div class="item">⚙ Settings</div>
+
+      <div class="section">Workflows</div>
+      <div class="item" onclick="saveWorkflow()">+ Save workflow</div>
+      <div class="item" onclick="loadWorkflow()">Load workflow</div>
+
       <div class="section">Installed</div>
       <div class="item">onboarding</div>
       <div class="item">daily-brief</div>
@@ -151,6 +156,13 @@
         <div style="color:#7d8590;font-size:12px;">Browse skills at <a href="http://localhost:8000/skills" style="color:#58a6ff;">localhost:8000/skills</a></div>
       </div>
 
+      <div class="skill-card" style="margin-top:14px;">
+        <div style="font-weight:600;margin-bottom:6px;">🔗 Workflow Builder</div>
+        <div id="workflow" style="color:#7d8590;font-size:12px;">No skills chained.</div>
+        <button class="btn" style="margin-top:6px;" onclick="addToWorkflow()">Add skill to chain</button>
+        <button class="btn primary" style="margin-top:6px;" onclick="runWorkflow()">Run workflow</button>
+      </div>
+
       <div style="margin-top:16px;">
         <div class="terminal" id="term">HermesOS v0.1.0-alpha
 Registry: http://localhost:8000
@@ -169,9 +181,10 @@ Users: 0 active
       <div class="chat-bubble" id="chat-status">Installed daily-brief. Use /brief to run.</div>
 
       <div class="section" style="margin-top:18px;">Processes</div>
-<div id="processes"><div class="chat-bubble">No active processes.</div></div>
-<button class="btn" style="margin-top:8px;" onclick="startDemoProcess()">Start demo process</button>
-<div class="section" style="margin-top:18px;">System</div>
+      <div id="processes"><div class="chat-bubble">No active processes.</div></div>
+      <button class="btn" style="margin-top:8px;" onclick="startDemoProcess()">Start demo process</button>
+
+      <div class="section" style="margin-top:18px;">System</div>
       <div style="color:#7d8590;font-size:11px;line-height:1.7;">
         Runtime: Hermes Agent<br>
         Platform: Windows<br>
@@ -183,11 +196,50 @@ Users: 0 active
   </div>
 
 <script>
+let workflowSkills = [];
+function addToWorkflow() {
+  var name = prompt("Skill name?");
+  if (!name) return;
+  workflowSkills.push(name);
+  document.getElementById("workflow").innerHTML = workflowSkills.map(function(s) {
+    return '<span style="background:#1f6feb;color:white;padding:2px 8px;border-radius:4px;margin-right:4px;font-size:11px;">' + s + '</span>';
+  }).join(" ") || "No skills chained.";
+}
+function saveWorkflow() {
+  fetch("http://localhost:8000/workflow", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ skills: workflowSkills })
+  }).then(function() { alert("Saved"); }).catch(function() { alert("Registry not reachable"); });
+}
+function loadWorkflow() { alert("Load workflow: not implemented yet"); }
+function runWorkflow() { alert("Running: " + workflowSkills.join(" -> ")); }
+
+function startDemoProcess(){
+  fetch("http://localhost:8000/processes/users/demo/processes",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({skill:"daily-brief"})
+  }).then(function(){ loadProcesses(); }).catch(function(){ alert("Registry not reachable"); });
+}
+function loadProcesses(){
+  fetch("http://localhost:8000/processes/users/demo/processes")
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      var el=document.getElementById("processes");
+      if(!el) return;
+      el.innerHTML=d.map(function(x){
+        return '<div class="chat-bubble"><b>'+x.skill+'</b> • '+x.status+'<br><small>'+(x.started_at||"")+'</small></div>';
+      }).join("") || "No active processes.";
+    })
+    .catch(function(){ alert("Registry not reachable"); });
+}
+
 function boot(){
   const t=document.getElementById('term');
-  t.innerHTML += '\\nRunning bootstrap.ps1...';
+  t.innerHTML += '\nRunning bootstrap.ps1...';
   fetch('http://localhost:8000/health')
-    .then(r=>r.json()).then(d=>{ t.innerHTML += '\\nRegistry OK: '+JSON.stringify(d); }).catch(()=>{ t.innerHTML += '\\nRegistry not reachable.'; });
+    .then(r=>r.json()).then(d=>{ t.innerHTML += '\nRegistry OK: '+JSON.stringify(d); }).catch(()=>{ t.innerHTML += '\nRegistry not reachable.'; });
 }
 function runTerminal(){ alert('Terminal mode available in v0.2.0.'); }
 function installSkill(){
