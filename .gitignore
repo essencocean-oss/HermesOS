@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+*.log
+
+# Virtual env
+.venv/
+
+# Hermes local configs
+config.local.yaml
+telegram_post_state.json
+
+# OS
+.DS_Store
+Thumbs.db

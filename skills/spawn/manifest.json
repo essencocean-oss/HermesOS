@@ -1,0 +1,10 @@
+{
+  "name": "spawn",
+  "version": "0.1.0",
+  "description": "Per-user Hermes runtime lifecycle",
+  "author": "essencocean-oss",
+  "license": "MIT",
+  "price_cents": 0,
+  "tools": ["web","terminal","file"],
+  "tags": ["platform","containers","runtime"]
+}

@@ -1,0 +1,15 @@
+{
+  "name": "abb-assistant",
+  "version": "0.1.0",
+  "description": "ABB engineering helper.",
+  "author": "essencocean-oss",
+  "license": "MIT",
+  "price_cents": 0,
+  "tools": [
+    "terminal"
+  ],
+  "tags": [
+    "abb",
+    "engineering"
+  ]
+}

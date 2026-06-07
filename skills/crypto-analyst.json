@@ -1,0 +1,16 @@
+{
+  "name": "crypto-analyst",
+  "version": "0.1.0",
+  "description": "Multi-timeframe crypto analysis.",
+  "author": "essencocean-oss",
+  "license": "MIT",
+  "price_cents": 0,
+  "tools": [
+    "web_search",
+    "terminal"
+  ],
+  "tags": [
+    "crypto",
+    "analysis"
+  ]
+}
