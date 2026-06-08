@@ -28,10 +28,17 @@ switch ($Action) {
         $prevPref = $ErrorActionPreference
         $ErrorActionPreference = 'Stop'
         try {
-            $envFile = Join-Path $env:USERPROFILE '.hermes\.env'
-            if (-not (Test-Path $envFile)) { throw "Missing Hermes .env at $envFile" }
-            $bot = Get-Content $envFile | Where-Object { $_ -match '^TELEGRAM_BOT_TOKEN=' } | ForEach-Object { ($_ -split '=',2)[1] }
-            if (-not $bot) { throw "TELEGRAM_BOT_TOKEN not found in .env" }
+            $candidates = @(
+                Join-Path $env:USERPROFILE '.hermes\.env',
+                Join-Path $env:LOCALAPPDATA 'hermes\.env',
+                Join-Path $env:APPDATA 'hermes\.env'
+            )
+            $envFile = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+            if (-not $envFile) { throw "No Hermes .env found in expected locations" }
+            $bot = Get-Content $envFile | Where-Object { $_ -match '^TELEGRAM_BOT_TOKEN=*** } | ForEach-Object {
+                ($_ -split '=',2)[1].Trim('"',''' )
+            }
+            if (-not $bot) { throw "TELEGRAM_BOT_TOKEN not found in $envFile" }
             $chat = '6677764672'
             $body = @{ chat_id=$chat; text=$Arg1 } | ConvertTo-Json -Compress
             $resp = Invoke-RestMethod -Method Post -Uri "https://api.telegram.org/bot$bot/sendMessage" -ContentType 'application/json' -Body $body
