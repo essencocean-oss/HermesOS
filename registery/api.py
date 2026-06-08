@@ -52,7 +52,7 @@ def get_ratings(name: str):
 @app.get('/health')
 def health():
     docker_cmd = os.environ.get('HERMES_DOCKER_CMD', 'docker')
-    return {'status': 'ok', 'service': 'hermesos-registry', 'sandbox': _docker_available() if shutil.which(docker_cmd) else False}
+    return {'status': 'ok', 'service': 'hermesos-registry', 'sandbox': False}
 
 @app.post("/skills/{name}/download")
 def track_download(name: str):
