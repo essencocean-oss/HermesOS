@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Optional
-import os, json
+import os, json, shutil
 
 app = FastAPI(title='HermesOS Registry')
 app.mount('/ui', StaticFiles(directory='ui', html=True))
@@ -62,7 +62,6 @@ import glob as _glob
 
 def _load_manifests() -> dict:
     out = {}
-    # 1) manifest.json files
     for path in _glob.glob(f"{REGISTRY_PATH}/*/manifest.json"):
         try:
             with open(path, "r", encoding="utf-8") as f:
@@ -70,7 +69,6 @@ def _load_manifests() -> dict:
             out[data.get("name", _stem(path))] = data
         except Exception:
             pass
-    # 2) SKILL.md files with YAML frontmatter (only if no manifest.json)
     manifest_stems = {_stem(p) for p in _glob.glob(f"{REGISTRY_PATH}/*/manifest.json")}
     for path in _glob.glob(f"{REGISTRY_PATH}/*/SKILL.md"):
         if _stem(path) in manifest_stems:
@@ -93,7 +91,6 @@ def _load_manifests() -> dict:
     return out
 
 def _stem(path: str) -> str:
-    # directory name is the skill identifier (e.g. .../skills/<name>/SKILL.md)
     return os.path.basename(os.path.dirname(path))
 
 def _parse_yaml_frontmatter(text: str) -> dict:
@@ -123,6 +120,20 @@ def _parse_yaml_frontmatter(text: str) -> dict:
         else:
             out[k] = v
     return out
+
+def _copy_skill_dir(src: str, dest: str) -> int:
+    copied = 0
+    for root, _dirs, files in os.walk(src):
+        rel = os.path.relpath(root, src)
+        target_root = os.path.join(dest, rel) if rel != "." else dest
+        os.makedirs(target_root, exist_ok=True)
+        for name in files:
+            src_file = os.path.join(root, name)
+            dest_file = os.path.join(target_root, name)
+            with open(src_file, "rb") as fsrc, open(dest_file, "wb") as fdst:
+                fdst.write(fsrc.read())
+            copied += 1
+    return copied
 
 @app.get("/skills")
 def list_skills():
@@ -163,8 +174,23 @@ def install_skill(name: str):
     manifests = _load_manifests()
     if name not in manifests:
         raise HTTPException(404, "Skill not found")
+    m = manifests[name]
+    src = os.path.join(REGISTRY_PATH, name)
+    if not os.path.isdir(src):
+        raise HTTPException(409, "Skill source directory missing")
+    dest_root = os.environ.get("HERMES_SKILLS_DIR") or os.path.join(os.path.expanduser("~"), ".hermes", "skills")
+    dest = os.path.join(dest_root, name)
+    if os.path.exists(dest):
+        return {"installed": name, "status": "already_installed", "downloads": downloads.get(name, 0)}
+    try:
+        os.makedirs(dest, exist_ok=True)
+    except Exception as exc:
+        raise HTTPException(500, f"Failed to create skill directory: {exc}")
+    copied = _copy_skill_dir(src, dest)
+    if not copied:
+        raise HTTPException(500, "Skill installed with no files copied")
     downloads[name] = downloads.get(name, 0) + 1
-    return {"installed": name, "downloads": downloads[name]}
+    return {"installed": name, "status": "installed", "files_copied": copied, "downloads": downloads[name]}
 
 @app.post("/skills/{name}/uninstall")
 def uninstall_skill(name: str):
