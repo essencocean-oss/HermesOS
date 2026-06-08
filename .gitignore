@@ -10,6 +10,12 @@ __pycache__/
 config.local.yaml
 telegram_post_state.json
 
+# Secrets / credentials
+.env
+*.env
+wallet.json
+secrets/
+
 # OS
 .DS_Store
 Thumbs.db
