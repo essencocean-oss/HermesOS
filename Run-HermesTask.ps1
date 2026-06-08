@@ -1,3 +1,7 @@
+<#
+.SYNOPSIS
+HermesOS task helper: commit, run, generate-image, generate-pdf, notify.
+#>
 param(
     [Parameter(Mandatory=$true, Position=0)]
     [ValidateSet('commit','run','generate-image','generate-pdf','notify')]
@@ -16,7 +20,7 @@ function Invoke-Commit {
     if (-not $Files -or $Files.Count -eq 0) { throw "No files to stage" }
     foreach ($f in $Files) { if (-not (Test-Path $f)) { throw "Missing file: $f" } }
     & $GitExe add @Files | Out-Null
-    $status = & $GitExe status -sb
+    $null = & $GitExe status -sb
     & $GitExe commit -m $Msg | Out-Null
     $push = & $GitExe push origin main 2>&1
     [pscustomobject]@{ status='ok'; push_output = ($push -join "`n") }
@@ -25,28 +29,31 @@ function Invoke-Commit {
 switch ($Action) {
     'notify' {
         if (-not $Arg1) { throw "Arg1 required: message text" }
-        $prevPref = $ErrorActionPreference
-        $ErrorActionPreference = 'Stop'
         try {
             $candidates = @(
-                Join-Path $env:USERPROFILE '.hermes\.env',
-                Join-Path $env:LOCALAPPDATA 'hermes\.env',
-                Join-Path $env:APPDATA 'hermes\.env'
+                "$env:USERPROFILE\.hermes\.env",
+                "$env:LOCALAPPDATA\hermes\.env"
             )
-            $envFile = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
-            if (-not $envFile) { throw "No Hermes .env found in expected locations" }
-            $bot = Get-Content $envFile | Where-Object { $_ -match '^TELEGRAM_BOT_TOKEN=*** } | ForEach-Object {
-                ($_ -split '=',2)[1].Trim('"',''' )
+            $envFile = $null
+            foreach ($path in $candidates) {
+                if (-not (Test-Path $path)) { continue }
+                $bot = $null
+                Get-Content $path | ForEach-Object {
+                    $line = $_.Trim()
+                    if ($line.StartsWith('TELEGRAM_BOT_TOKEN=*** {
+                        $bot = $line.Split('=',2)[1].Trim()
+                    }
+                }
+                if ($bot) { $envFile = $path; break }
             }
-            if (-not $bot) { throw "TELEGRAM_BOT_TOKEN not found in $envFile" }
+            if (-not $envFile) { throw "TELEGRAM_BOT_TOKEN not found in any Hermes .env" }
+
             $chat = '6677764672'
             $body = @{ chat_id=$chat; text=$Arg1 } | ConvertTo-Json -Compress
-            $resp = Invoke-RestMethod -Method Post -Uri "https://api.telegram.org/bot$bot/sendMessage" -ContentType 'application/json' -Body $body
-            Write-Output "OK: telegram sent ($($resp.ok))"
+            Invoke-RestMethod -Method Post -Uri "https://api.telegram.org/bot$bot/sendMessage" -ContentType 'application/json' -Body $body | Out-Null
+            Write-Output "OK: telegram sent"
         } catch {
             Write-Output "FAIL: $_"
-        } finally {
-            $ErrorActionPreference = $prevPref
         }
     }
     'commit' {
@@ -112,7 +119,7 @@ pdf.section('Status','PLACEHOLDER')
 pdf.output('report.pdf')
 print('Wrote report.pdf')
 '@
-        $py = $py -replace 'PLACEHOLDER', [script]::escape($safe)
+        $py = [regex]::Replace($py, 'PLACEHOLDER', $safe, 'IgnoreCase')
         Set-Content make_report.py -Value $py -Encoding UTF8
         python make_report.py
     }
