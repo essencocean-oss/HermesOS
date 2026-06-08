@@ -138,8 +138,18 @@ def _copy_skill_dir(src: str, dest: str) -> int:
 @app.get("/skills")
 def list_skills():
     manifests = _load_manifests()
+    fallback_repo = {
+        "memory": "https://github.com/NousResearch/hermes-agent",
+        "spawn": "https://github.com/NousResearch/hermes-agent",
+        "github-integration": "https://github.com/NousResearch/hermes-agent",
+        "guardrails-approval": "https://github.com/NousResearch/hermes-agent",
+        "web-browser-automation": "https://github.com/NousResearch/hermes-agent",
+        "portfolio-tracker": "https://github.com/essencocean-oss/HermesOS",
+        "telegram-poster": "https://github.com/essencocean-oss/HermesOS",
+    }
     items = []
     for name, m in manifests.items():
+        repo = m.get("source_repo") or fallback_repo.get(name)
         items.append({
             "name": m.get("name", name),
             "version": m.get("version", "0.1.0"),
@@ -149,6 +159,8 @@ def list_skills():
             "price_cents": m.get("price_cents", 0),
             "downloads": downloads.get(name, 0),
             "ratings": ratings.get(name, []),
+            "source_repo": repo,
+            "is_verified": bool(repo),
         })
     return {"items": items}
 

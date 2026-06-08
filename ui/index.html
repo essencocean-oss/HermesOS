@@ -38,6 +38,8 @@
   .btn:hover { background: #2ea043; }
   .btn.primary { background: #1f6feb; border-color: #388bfd; }
   .btn.primary:hover { background: #388bfd; }
+  .btn.ghost { background: transparent; border-color: #30363d; color: #c9d1d9; }
+  .btn.ghost:hover { border-color: #8b949e; }
   .main {
     display: grid;
     grid-template-columns: 240px 1fr 300px;
@@ -64,6 +66,7 @@
     color: #c9d1d9;
   }
   .item:hover { background: #161b22; }
+  .item.active { background: #1f6feb33; border: 1px solid #1f6feb; }
   .center { padding: 20px; overflow-y: auto; }
   .right {
     background: #0d1117;
@@ -89,6 +92,20 @@
     padding: 12px;
     margin-bottom: 8px;
   }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    color: #c9d1d9;
+    margin: 2px;
+  }
+  .chip.verified { border-color: #2ea043; color: #7ee787; }
+  .chip .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
   .chat-bubble {
     background: #161b22;
     border: 1px solid #30363d;
@@ -108,12 +125,29 @@
     font-size: 12px;
     width: 100%;
   }
+  .market-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px;
+  }
+  .market-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .market-card h3 { font-size: 13px; color: #f0f6fc; }
+  .market-card p { font-size: 11px; color: #7d8590; }
+  .meta { display: flex; flex-wrap: wrap; gap: 4px; }
 </style>
 </head>
 <body>
   <div class="topbar">
     <div class="brand">⚡ HermesOS</div>
-    <div class="status">Alpha • Localhost:8000</div>
+    <div class="status" id="top-status">Alpha • Localhost:8000</div>
     <div class="top-actions">
       <button class="btn" onclick="installSkill()">Install Skill</button>
       <button class="btn primary" onclick="runTerminal()">Terminal</button>
@@ -123,71 +157,59 @@
   <div class="main">
     <div class="sidebar">
       <div class="section">Navigation</div>
-      <div class="item">🏠 Home</div>
-      <div class="item">🤖 Agent</div>
-      <div class="item">🛍 Marketplace</div>
-      <div class="item">📊 Terminal</div>
-      <div class="item">⚙ Settings</div>
+      <div class="item active" onclick="showTab('market')">🛍 Marketplace</div>
+      <div class="item" onclick="showTab('home')">🏠 Home</div>
+      <div class="item" onclick="showTab('agent')">🤖 Agent</div>
+      <div class="item" onclick="showTab('terminal')">📊 Terminal</div>
+      <div class="item" onclick="showTab('settings')">⚙ Settings</div>
 
       <div class="section">Workflows</div>
       <div class="item" onclick="saveWorkflow()">+ Save workflow</div>
       <div class="item" onclick="loadWorkflow()">Load workflow</div>
 
       <div class="section">Installed</div>
-      <div class="item" onclick="openModule('guardrails')">🛡️ Guardrails / Approval</div>
-      <div class="item" onclick="openModule('github')">🐙 GitHub Integration</div>
-      <div class="item" onclick="openModule('browser')">🌐 Browser Automation</div>
-      <div class="item" onclick="openModule('portfolio')">📈 Portfolio Tracker</div>
-      <div class="item" onclick="openModule('memory')">🧠 Memory</div>
-      <div class="item" onclick="openModule('spawn')">🧩 Spawn Runtime</div>
-      <div class="item" onclick="openModule('onboarding')">👋 Onboarding</div>
-      <div class="item" onclick="openModule('daily-brief')">📰 Daily Brief</div>
-      <div class="item" onclick="openModule('crypto-trader')">📊 Crypto Trader</div>
-      <div class="item" onclick="openModule('solana-checkout')">💳 Solana Checkout</div>
-      <div class="item" onclick="openModule('telegram-poster')">📣 Telegram Poster</div>
-      <div class="item" onclick="openModule('x-poster')">🐦 X Poster</div>
+      <div id="installed-list"><div class="chat-bubble">No installs yet.</div></div>
     </div>
 
     <div class="center">
-      <h2 style="font-size:17px;font-weight:600;margin-bottom:10px;">Welcome</h2>
-      <p style="color:#7d8590;font-size:13px;margin-bottom:16px;">
-        Agent runtime with a public skill marketplace. Install skills and automate workflows.
-      </p>
-
-      <div class="skill-card">
-        <div style="font-weight:600;margin-bottom:4px;">🚀 Quick Start</div>
-        <div style="color:#7d8590;font-size:12px;margin-bottom:8px;">Run bootstrap.ps1 to prepare your environment.</div>
-        <button class="btn" onclick="boot()">Run bootstrap.ps1</button>
+      <div id="tab-market">
+        <h2 style="font-size:17px;font-weight:600;margin-bottom:10px;">Marketplace</h2>
+        <p style="color:#7d8590;font-size:13px;margin-bottom:14px;">
+          Browse verified skills. Install with one click.
+        </p>
+        <div class="market-grid" id="market-grid">Loading skills…</div>
       </div>
 
-      <div class="skill-card">
-        <div style="font-weight:600;margin-bottom:4px;">📦 Marketplace</div>
-        <div style="color:#7d8590;font-size:12px;">Browse skills at <a href="http://localhost:8000/skills" style="color:#58a6ff;">localhost:8000/skills</a></div>
+      <div id="tab-home" style="display:none;">
+        <h2 style="font-size:17px;font-weight:600;margin-bottom:10px;">Welcome</h2>
+        <p style="color:#7d8590;font-size:13px;margin-bottom:16px;">Agent runtime with a public skill marketplace.</p>
+        <div class="skill-card">
+          <div style="font-weight:600;margin-bottom:4px;">🚀 Quick Start</div>
+          <div style="color:#7d8590;font-size:12px;margin-bottom:8px;">Run bootstrap.ps1 to prepare your environment.</div>
+          <button class="btn" onclick="boot()">Run bootstrap.ps1</button>
+        </div>
       </div>
 
-      <div class="skill-card" style="margin-top:14px;">
-        <div style="font-weight:600;margin-bottom:6px;">🔗 Workflow Builder</div>
-        <div id="workflow" style="color:#7d8590;font-size:12px;">No skills chained.</div>
-        <button class="btn" style="margin-top:6px;" onclick="addToWorkflow()">Add skill to chain</button>
-        <button class="btn primary" style="margin-top:6px;" onclick="runWorkflow()">Run workflow</button>
+      <div id="tab-agent" style="display:none;">
+        <h2 style="font-size:17px;font-weight:600;margin-bottom:10px;">Agent</h2>
+        <p style="color:#7d8590;font-size:13px;">Runtime config, model routing, and skill composition will surface here.</p>
       </div>
 
-      <div style="margin-top:16px;">
-        <div class="terminal" id="term">HermesOS v0.1.0-alpha
-Registry: http://localhost:8000
-Agent: waiting
-Skills: 9 discovered
-Users: 0 active
-</div>
+      <div id="tab-terminal" style="display:none;">
+        <h2 style="font-size:17px;font-weight:600;margin-bottom:10px;">Terminal</h2>
+        <div class="terminal" id="term">HermesOS v0.1.0-alpha\nRegistry: http://localhost:8000</div>
+        <button class="btn primary" style="margin-top:8px;" onclick="runTerminal()">Launch terminal</button>
+      </div>
+
+      <div id="tab-settings" style="display:none;">
+        <h2 style="font-size:17px;font-weight:600;margin-bottom:10px;">Settings</h2>
+        <p style="color:#7d8590;font-size:13px;">Profiles, gateway, credentials.</p>
       </div>
     </div>
 
     <div class="right">
-      <div class="section">Agent Chat</div>
-      <div class="chat-bubble user">What can you do?</div>
-      <div class="chat-bubble">Install skills, run commands, send Telegram posts, analyze markets, and automate tasks.</div>
-      <div class="chat-bubble user">Install daily-brief</div>
-      <div class="chat-bubble" id="chat-status">Installed daily-brief. Use /brief to run.</div>
+      <div class="section">Installing</div>
+      <div id="install-status"><div class="chat-bubble">Idle — select a skill and click Install.</div></div>
 
       <div class="section" style="margin-top:18px;">Processes</div>
       <div id="processes"><div class="chat-bubble">No active processes.</div></div>
@@ -205,90 +227,139 @@ Users: 0 active
   </div>
 
 <script>
-let workflowSkills = [];
-function addToWorkflow() {
-  var name = prompt("Skill name?");
-  if (!name) return;
-  workflowSkills.push(name);
-  document.getElementById("workflow").innerHTML = workflowSkills.map(function(s) {
-    return '<span style="background:#1f6feb;color:white;padding:2px 8px;border-radius:4px;margin-right:4px;font-size:11px;">' + s + '</span>';
-  }).join(" ") || "No skills chained.";
+function showTab(name) {
+  ['market','home','agent','terminal','settings'].forEach(function(t) {
+    const el = document.getElementById('tab-' + t);
+    if (el) el.style.display = 'none';
+  });
+  const target = document.getElementById('tab-' + name);
+  if (target) target.style.display = 'block';
+}
+function refreshMarket() {
+  fetch('http://localhost:8000/skills')
+    .then(function(r){ return r.json(); })
+    .then(function(d) {
+      const grid = document.getElementById('market-grid');
+      if (!grid) return;
+      grid.innerHTML = '';
+      (d.items || []).forEach(function(skill) {
+        const card = document.createElement('div');
+        card.className = 'market-card';
+        const hasRepoSrc = !!skill.source_repo;
+        const verified = hasRepoSrc ? 'verified' : '';
+        const provenance = hasRepoSrc ? '<span class="chip verified"><span class="dot"></span>Verified</span>' : '<span class="chip">Unverified</span>';
+        card.innerHTML = '<h3>' + escapeHtml(skill.name) + '</h3>' +
+          '<p>' + escapeHtml(skill.description || '') + '</p>' +
+          '<div class="meta">' + provenance +
+          '<span class="chip">⬇ ' + (skill.downloads || 0) + '</span>' +
+          '<span class="chip">⭐ ' + (skill.avg_stars || 0) + '</span></div>' +
+          '<button class="btn primary" data-name="' + escapeHtml(skill.name) + '">Install</button>';
+        card.querySelector('button').addEventListener('click', function() {
+          installSkill(skill.name);
+        });
+        grid.appendChild(card);
+      });
+    })
+    .catch(function() {
+      const grid = document.getElementById('market-grid');
+      if (grid) grid.innerHTML = '<div class="chat-bubble">Registry not reachable.</div>';
+    });
+}
+function escapeHtml(text) {
+  return String(text || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+function installSkill(name) {
+  const status = document.getElementById('install-status');
+  if (status) status.innerHTML = '<div class="chat-bubble">Installing ' + escapeHtml(name) + '…</div>';
+  fetch('http://localhost:8000/skills/' + encodeURIComponent(name) + '/install', { method: 'POST' })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (status) status.innerHTML = '<div class="chat-bubble">' + escapeHtml(JSON.stringify(d)) + '</div>';
+      refreshInstalled();
+      refreshMarket();
+    })
+    .catch(function(err) {
+      if (status) status.innerHTML = '<div class="chat-bubble">Install failed</div>';
+    });
+}
+function refreshInstalled() {
+  const el = document.getElementById('installed-list');
+  if (!el) return;
+  const names = window.__installed || [];
+  if (!names.length) { el.innerHTML = '<div class="chat-bubble">No installs yet.</div>'; return; }
+  el.innerHTML = names.map(function(n){ return '<div class="chat-bubble">✅ ' + escapeHtml(n) + '</div>'; }).join('');
+}
+function boot() {
+  const t = document.getElementById('term');
+  if (t) t.innerHTML += '\nRunning bootstrap.ps1...';
+  fetch('http://localhost:8000/health')
+    .then(function(r){ return r.json(); })
+    .then(function(d){ if (t) t.innerHTML += '\nRegistry OK: ' + JSON.stringify(d); })
+    .catch(function(){ if (t) t.innerHTML += '\nRegistry not reachable.'; });
+}
+function runTerminal() { alert('Terminal mode in v0.2.0.'); }
+function startDemoProcess() {
+  fetch('http://localhost:8000/processes/users/demo/processes', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ skill: 'daily-brief' })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(){ loadProcesses(); })
+  .catch(function(){ alert('Registry not reachable'); });
+}
+function stopProcess(pid) {
+  fetch('http://localhost:8000/processes/users/demo/processes/' + encodeURIComponent(pid) + '/stop', { method: 'POST' })
+    .then(function(){ loadProcesses(); })
+    .catch(function(){ alert('Stop failed'); });
+}
+function restartProcess(pid) {
+  fetch('http://localhost:8000/processes/users/demo/processes/' + encodeURIComponent(pid) + '/restart', { method: 'POST' })
+    .then(function(){ loadProcesses(); })
+    .catch(function(){ alert('Restart failed'); });
+}
+function loadProcesses() {
+  fetch('http://localhost:8000/processes/users/demo/processes')
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      const el = document.getElementById('processes');
+      if (!el) return;
+      el.innerHTML = d.map(function(x) {
+        var icon = x.status === 'running' ? '▶️' : '⏹️';
+        var actions = '';
+        if (x.status === 'running') {
+          actions = ' <button class="btn" style="margin-top:4px;padding:2px 8px;font-size:10px;" onclick="stopProcess(\'' + x.pid + '\')">Stop</button> <button class="btn primary" style="margin-top:4px;padding:2px 8px;font-size:10px;" onclick="restartProcess(\'' + x.pid + '\')">Restart</button>';
+        }
+        return '<div class="chat-bubble"><b>' + icon + ' ' + escapeHtml(x.skill) + '</b> • ' + escapeHtml(x.status) + '<br><small>' + escapeHtml(x.started_at || '') + '</small>' + actions + '</div>';
+      }).join('') || '<div class="chat-bubble">No processes.</div>';
+    })
+    .catch(function(){ alert('Registry not reachable'); });
 }
 function saveWorkflow() {
-  fetch("http://localhost:8000/workflow", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ skills: workflowSkills })
-  }).then(function() { alert("Saved"); }).catch(function() { alert("Registry not reachable"); });
+  fetch('http://localhost:8000/workflow', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ skills: window.__workflow || [] })
+  }).then(function() { alert('Saved'); }).catch(function() { alert('Registry not reachable'); });
 }
-function loadWorkflow() { alert("Load workflow: not implemented yet"); }
-function runWorkflow() { alert("Running: " + workflowSkills.join(" -> ")); }
+function loadWorkflow() { alert('Load workflow: not implemented yet'); }
 
-function startDemoProcess(){
-  fetch("http://localhost:8000/processes/users/demo/processes",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({skill:"daily-brief"})
-  }).then(function(r){return r.json();}).then(function(d){loadProcesses();}).catch(function(){alert("Registry not reachable");});
-}
-function stopProcess(pid){
-  fetch("http://localhost:8000/processes/users/demo/processes/"+encodeURIComponent(pid)+"/stop",{method:"POST"}).then(function(){loadProcesses();}).catch(function(){alert("Stop failed");});
-}
-function restartProcess(pid){
-  fetch("http://localhost:8000/processes/users/demo/processes/"+encodeURIComponent(pid)+"/restart",{method:"POST"}).then(function(){loadProcesses();}).catch(function(){alert("Restart failed");});
-}
-function loadProcesses(){
-  fetch("http://localhost:8000/processes/users/demo/processes").then(function(r){return r.json();}).then(function(d){
-    var el=document.getElementById("processes");
-    if(!el)return;
-    el.innerHTML=d.map(function(x){
-      var icon=x.status==='running'?'▶️':'⏹️';
-      var actions='';
-      if(x.status==='running'){
-        actions=' <button class="btn" style="margin-top:4px;padding:2px 8px;font-size:10px;" onclick="stopProcess(\''+x.pid+'\')">Stop</button> <button class="btn primary" style="margin-top:4px;padding:2px 8px;font-size:10px;" onclick="restartProcess(\''+x.pid+'\')">Restart</button>';
-      }
-      return '<div class="chat-bubble"><b>'+icon+' '+x.skill+'</b> • '+x.status+'<br><small>'+(x.started_at||'')+'</small>'+actions+'</div>';
-    }).join("")||'<div class="chat-bubble">No processes.</div>';
-  }).catch(function(){alert("Registry not reachable");});
-
-}
-
-function boot(){
-  const t=document.getElementById('term');
-  t.innerHTML += '\nRunning bootstrap.ps1...';
-  fetch('http://localhost:8000/health')
-    .then(r=>r.json()).then(d=>{ t.innerHTML += '\nRegistry OK: '+JSON.stringify(d); }).catch(()=>{ t.innerHTML += '\nRegistry not reachable.'; });
-}
-function runTerminal(){ alert('Terminal mode in v0.2.0.'); }
-
-function openModule(module){
-  const el=document.getElementById('chat-status');
-  if(el) el.innerHTML='Opening '+module+' module...';
-}
-
-function installSkill(){
-  const name=prompt('Skill name?');
-  if(!name) return;
-  fetch('http://localhost:8000/skills/'+encodeURIComponent(name))
-    .then(r=>r.ok?r.json():Promise.reject('not found'))
-    .then(d=>{
-      const s=document.getElementById('chat-status'); if(s) s.innerHTML='Installed '+name;
-      return fetch('http://localhost:8000/skills/'+encodeURIComponent(name)+'/download', {method:'POST'});
-    })
-    .then(()=> alert('Download tracked'))
-    .catch(()=>{ const s=document.getElementById('chat-status'); if(s) s.innerHTML='Skill not found in registry.'; });
-}
-function refreshSkills(){
-  fetch('http://localhost:8000/skills')
-    .then(r=>r.json())
-    .then(d=>{
-      const t=document.getElementById('term');
-      if(!t) return;
-      t.innerHTML += '\\nSkills loaded: '+d.items.length;
-    })
-    .catch(()=>{});
-}
-setTimeout(refreshSkills, 1500);
+window.__installed = [];
+refreshMarket();
+setTimeout(function() {
+  loadProcesses();
+  refreshInstalled();
+}, 700);
+window.addEventListener('storage', function(e) {
+  if (e.key === 'hermes.installed' && e.newValue) {
+    try { window.__installed = JSON.parse(e.newValue); } catch (e){}
+    refreshInstalled();
+  }
+});
 </script>
 </body>
 </html>
