@@ -16,8 +16,11 @@ app.mount('/portfolio', __import__('registery.portfolio').portfolio.portfolio)
 app.mount('/sandbox', __import__('registery.sandbox').sandbox.sandbox)
 
 REGISTRY_PATH = 'skills'
-USERS_PATH = 'users'
-WORKSPACES_PATH = 'workspaces'
+HEARTBEAT_PATH = "agents"
+USERS_PATH = "users"
+WORKSPACES_PATH = "workspaces"
+AGENTS_PATH = "agents"
+HEARTBEAT_FILENAME = "heartbeat.json"
 
 # --- Versioning & Ratings ---
 ratings = {}
@@ -196,7 +199,12 @@ def install_skill(name: str):
     src = os.path.join(REGISTRY_PATH, name)
     if not os.path.isdir(src):
         raise HTTPException(409, "Skill source directory missing")
-    dest_root = os.environ.get("HERMES_SKILLS_DIR") or os.path.join(os.path.expanduser("~"), ".hermes", "skills")
+    candidates = [
+        os.environ.get("HERMES_SKILLS_DIR"),
+        os.path.join(os.path.expanduser("~"), ".hermes", "skills"),
+        os.path.join(os.path.expanduser("~"), "AppData", "Local", "hermes", "skills"),
+    ]
+    dest_root = next((p for p in candidates if p), os.path.join(os.path.expanduser("~"), ".hermes", "skills"))
     dest = os.path.join(dest_root, name)
     if os.path.exists(dest):
         return {"installed": name, "status": "already_installed", "downloads": downloads.get(name, 0)}
@@ -217,10 +225,32 @@ def uninstall_skill(name: str):
         raise HTTPException(404, "Skill not found")
     return {"uninstalled": name}
 
-@app.post("/skills")
-def publish_skill(manifest: SkillManifest):
-    return {
-        "name": manifest.name,
-        "version": manifest.version,
-        "status": "published",
+HEARTBEAT = {}
+
+def _register_agent(agent_id: str, payload: dict):
+    HEARTBEAT[agent_id] = {
+        "agent_id": agent_id,
+        "status": "online",
+        "last_seen": __import__("datetime").datetime.utcnow().isoformat() + "Z",
+        "payload": payload or {},
     }
+
+def _load_agents() -> dict:
+    return dict(HEARTBEAT)
+
+@app.get("/agents")
+def list_agents():
+    agents = _load_agents()
+    return {"items": list(agents.values())}
+
+@app.get("/agents/{agent_id}")
+def get_agent(agent_id: str):
+    agents = _load_agents()
+    if agent_id not in agents:
+        raise HTTPException(404, "Agent not found")
+    return agents[agent_id]
+
+@app.post("/agents/{agent_id}/heartbeat")
+def agent_heartbeat(agent_id: str, payload: Optional[dict] = None):
+    _register_agent(agent_id, payload)
+    return {"status": "ok"}
