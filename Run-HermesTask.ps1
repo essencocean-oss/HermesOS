@@ -23,11 +23,26 @@ function Invoke-Commit {
 }
 
 switch ($Action) {
+    'notify' {
+        if (-not $Arg1) { throw "Arg1 required: message text" }
+        $envFile = Join-Path $env:USERPROFILE '.hermes\.env'
+        if (-not (Test-Path $envFile)) { throw "Missing Hermes .env at $envFile" }
+        $bot = Get-Content $envFile | Where-Object { $_ -match '^TELEGRAM_BOT_TOKEN=' } | ForEach-Object { ($_ -split '=',2)[1] }
+        if (-not $bot) { throw "TELEGRAM_BOT_TOKEN not found in .env" }
+        $chat = '6677764672'
+        $body = @{ chat_id=$chat; text=$Arg1 } | ConvertTo-Json -Compress
+        Invoke-RestMethod -Method Post -Uri "https://api.telegram.org/bot$bot/sendMessage" -ContentType 'application/json' -Body $body
+    }
     'commit' {
         $files = @('build_report.py','hello.txt','make_image.py','assets/agent_flow.png')
         $has = @($files | Where-Object { Test-Path $_ })
         if ($has.Count -eq 0) { throw "Nothing to commit" }
-        Invoke-Commit -Files $has -Msg "chore: autonomous commit"
+        $result = Invoke-Commit -Files $has -Msg "chore: autonomous commit"
+        if ($LASTEXITCODE -ne 0 -or $result.status -ne 'ok') { throw "Push failed`n$($result.push_output)" }
+        try {
+            powershell -ExecutionPolicy Bypass -File (Join-Path $Root 'Run-HermesTask.ps1') notify "HermesOS push: $(git rev-parse --short HEAD) — $(($has -join ', '))"
+        } catch {}
+        $result
     }
     'run' {
         if (-not $Arg1) { throw "Arg1 required: script path" }
