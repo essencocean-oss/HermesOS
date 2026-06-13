@@ -4,13 +4,13 @@
 <p align="center">
   <a href="https://hermes-agent.nousresearch.com/docs/"><img src="https://img.shields.io/badge/Docs-hermes--agent.nousresearch.com-FFD700?style=for-the-badge" alt="Documentation"></a>
   <a href="https://t.me/hermes_agent_desktop"><img src="https://img.shields.io/badge/Telegram-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white" alt="Telegram"></a>
-  <a href="https://github.com/essencocean-oss/HermesOS/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT"></a>
+  <a href="https://github.com/essencocean-oss/OceanOS/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT"></a>
     <a href="https://hermesagents.cc/"><img src="https://img.shields.io/badge/Download-Releases-FF6600?style=for-the-badge" alt="Releases"></a>
-  <a href="https://github.com/essencocean-oss/HermesOS/stargazers">
-    <img src="https://img.shields.io/github/stars/essencocean-oss/HermesOS?style=for-the-badge&color=FFD700&label=Stars" alt="Stars">
+  <a href="https://github.com/essencocean-oss/OceanOS/stargazers">
+    <img src="https://img.shields.io/github/stars/essencocean-oss/OceanOS?style=for-the-badge&color=FFD700&label=Stars" alt="Stars">
   </a>
-    <a href="https://github.com/essencocean-oss/HermesOS/releases/">
-    <img src="https://img.shields.io/github/downloads/essencocean-oss/HermesOS/total?style=for-the-badge&color=00B496&label=Total%20Downloads" alt="Downloads">
+    <a href="https://github.com/essencocean-oss/OceanOS/releases/">
+    <img src="https://img.shields.io/github/downloads/essencocean-oss/OceanOS/total?style=for-the-badge&color=00B496&label=Total%20Downloads" alt="Downloads">
   </a>
   </p>
 
@@ -23,7 +23,7 @@
 
 > **This project is in active development.** Features may change, and some things might break. If you run into a problem or have an idea, [open an issue](https://github.com/fathah/hermes-desktop/issues). Contributions are welcome!
 
-HermesOS is a native desktop runtime for installing, configuring, working with, and extending [Hermes Agent](https://github.com/NousResearch/hermes-agent) — a self-improving AI assistant with tool use, multi-platform messaging, and a closed learning loop.
+OceanOS is a native desktop runtime for installing, configuring, working with, and extending [Hermes Agent](https://github.com/NousResearch/hermes-agent) — a self-improving AI assistant with tool use, multi-platform messaging, and a closed learning loop.
 
 Instead of managing the CLI by hand, the app walks through install, provider setup, and day-to-day usage in one place. It uses the official Hermes install script, stores Hermes in `~/.hermes`, and gives you a GUI for chat, sessions, profiles, memory, skills, tools, scheduling, messaging gateways, and more.
 
